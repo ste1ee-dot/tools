@@ -4,8 +4,9 @@
 
 #--------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
-#available arguments:
+#available flags:
 #       -rd (--remove-duplicates) | removes duplicates from .cdhistory
+#       -ch (--clear-hisotry)     | completely clears .cdhistory file
 
 CDHISTORY="$HOME/.cdhistory"
 [ -f "$CDHISTORY" ] || touch "$CDHISTORY" 2>/dev/null
@@ -19,6 +20,10 @@ c() {
     tac "$CDHISTORY" | awk '!seen[$0]++' | tac > "$CDHISTORY.tmp" && mv "$CDHISTORY.tmp" "$CDHISTORY"
     return 0
   fi
+  if [ "$1" = "--clear-history" ] || [ "$1" = "-ch" ]; then
+    rm $CDHISTORY && touch $CDHISTORY
+    return 0
+  fi
 
   dir=$(tac "$CDHISTORY" | awk '!seen[$0]++' | fzf) || return 1
   [ -n "$dir" ] && cd "$dir"
@@ -30,8 +35,9 @@ c() {
 #
 #MAKE SURE TO ALIAS your editor command to 'edit'
 #
-#available arguments:
+#available flags:
 #       -rd (--remove-duplicates) | removes duplicates from .edithistory
+#       -ch (--clear-hisotry)     | completely clears .edithistory file
 
 EDITHISTORY="$HOME/.edithistory"
 [ -f "$EDITHISTORY" ] || touch "$EDITHISTORY" 2>/dev/null
@@ -53,6 +59,10 @@ edit() {
 j() {
   if [ "$1" = "--remove-duplicates" ] || [ "$1" = "-rd" ]; then
     tac "$EDITHISTORY" | awk '!seen[$0]++' | tac > "$EDITHISTORY.tmp" && mv "$EDITHISTORY.tmp" "$EDITHISTORY"
+    return 0
+  fi
+  if [ "$1" = "--clear-history" ] || [ "$1" = "-ch" ]; then
+    rm $EDITHISTORY && touch $EDITHISTORY
     return 0
   fi
 
