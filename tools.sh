@@ -1,6 +1,6 @@
 #!/bin/sh
 #required:
-#   fzf(fzy breaks hyprland for some reason), tac
+#   fzf(fzy breaks hyprland for some reason), tac, sed
 
 #--------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
@@ -25,7 +25,7 @@ c() {
     return 0
   fi
 
-  dir=$(tac "$CDHISTORY" | awk '!seen[$0]++' | fzf) || return 1
+  dir=$(tac "$CDHISTORY" | sed "\|$PWD\$|d" | awk '!seen[$0]++' | fzf) || return 1
   [ -n "$dir" ] && cd "$dir"
 }
 
