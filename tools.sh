@@ -71,16 +71,16 @@ jj() {
 }
 
 p() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | head -n 1) || return 1
-  echo "$file"
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | sed '1{p;q}') || return 1
+  [ -f "$file" ] && edit "$file"
 }
 pp() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | head -n 2 | tail -n 1) || return 1
-  echo "$file"
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | sed '2{p;q}') || return 1
+  [ -f "$file" ] && edit "$file"
 }
 ppp() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | head -n 3 | tail -n 1) || return 1
-  echo "$file"
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | sed '3{p;q}') || return 1
+  [ -f "$file" ] && edit "$file"
 }
 
 cleanup() {
