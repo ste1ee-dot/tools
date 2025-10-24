@@ -2,36 +2,22 @@
 #required:
 #   fzf(fzy breaks hyprland for some reason), tac, sed, grep
 
-#TODO: move options to separate functions
 #TODO: make j not show full paths but just one dir up, also add J for loops
 #TODO: add peepee
 #TODO: add coloring to sed
-#TODO: clean up non existant files (moved or deleted)
 #TODO: make and quick access to compiler errors
 
 #--------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
-#available flags:
-#       -rd (--remove-duplicates) | removes duplicates from .cdhistory
-#       -ch (--clear-hisotry)     | completely clears .cdhistory file
 
 CDHISTORY="$HOME/.cdhistory"
-[ -f "$CDHISTORY" ] || touch "$CDHISTORY" 2>/dev/null
 
 cd() {
+  [ -f "$CDHISTORY" ] || touch "$CDHISTORY"
   command cd "$@" && echo "$PWD" >> $CDHISTORY
 }
 
 c() {
-  if [ "$1" = "--remove-duplicates" ] || [ "$1" = "-rd" ]; then
-    tac "$CDHISTORY" | awk '!seen[$0]++' | tac > "$CDHISTORY.tmp" && mv "$CDHISTORY.tmp" "$CDHISTORY"
-    return 0
-  fi
-  if [ "$1" = "--clear-history" ] || [ "$1" = "-ch" ]; then
-    rm $CDHISTORY && touch $CDHISTORY
-    return 0
-  fi
-
   dir=$(tac "$CDHISTORY" | sed "\|$PWD\$|d" | awk '!seen[$0]++' | fzf) || return 1
   [ -n "$dir" ] && cd "$dir"
 }
@@ -41,15 +27,12 @@ c() {
 #by default it uses $EDITOR variable to find the default editor
 #
 #MAKE SURE TO ALIAS your editor command to 'edit'
-#
-#available flags:
-#       -rd (--remove-duplicates) | removes duplicates from .edithistory
-#       -ch (--clear-hisotry)     | completely clears .edithistory file
 
 EDITHISTORY="$HOME/.edithistory"
-[ -f "$EDITHISTORY" ] || touch "$EDITHISTORY" 2>/dev/null
 
 edit() {
+  [ -f "$EDITHISTORY" ] || touch "$EDITHISTORY"
+
   if [ $# -gt 0 ]; then
     case "$1" in
       -*) ;;
@@ -64,30 +47,39 @@ edit() {
 }
 
 j() {
-  if [ "$1" = "--remove-duplicates" ] || [ "$1" = "-rd" ]; then
-    tac "$EDITHISTORY" | awk '!seen[$0]++' | tac > "$EDITHISTORY.tmp" && mv "$EDITHISTORY.tmp" "$EDITHISTORY"
-    return 0
-  fi
-  if [ "$1" = "--clear-history" ] || [ "$1" = "-ch" ]; then
-    rm $EDITHISTORY && touch $EDITHISTORY
-    return 0
-  fi
-
   file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | grep "$PWD" | fzf) || return 1
   [ -n "$file" ] && edit "$file"
 }
 
 jj() {
-  if [ "$1" = "--remove-duplicates" ] || [ "$1" = "-rd" ]; then
-    tac "$EDITHISTORY" | awk '!seen[$0]++' | tac > "$EDITHISTORY.tmp" && mv "$EDITHISTORY.tmp" "$EDITHISTORY"
-    return 0
-  fi
-  if [ "$1" = "--clear-history" ] || [ "$1" = "-ch" ]; then
-    rm $EDITHISTORY && touch $EDITHISTORY
-    return 0
-  fi
-
   file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
   [ -n "$file" ] && edit "$file"
+}
+
+cleanup() {
+  if [ -f "$CDHISTORY" ] && [ -f "$EDITHISTORY" ]; then
+    tac "$CDHISTORY" | awk '!seen[$0]++' | tac > "$CDHISTORY.tmp" && mv "$CDHISTORY.tmp" "$CDHISTORY"
+    tac "$EDITHISTORY" | awk '!seen[$0]++' | tac > "$EDITHISTORY.tmp" && mv "$EDITHISTORY.tmp" "$EDITHISTORY"
+
+    tmpfile="/tmp/paths.$$"
+    while IFS= read -r path; do
+      [ -e "$path" ] && echo "$path" >> "$tmpfile"
+    done < $CDHISTORY
+    mv "$tmpfile" $CDHISTORY
+
+    tmpfile="/tmp/paths.$$"
+    while IFS= read -r path; do
+      [ -e "$path" ] && echo "$path" >> "$tmpfile"
+    done < $EDITHISTORY
+    mv "$tmpfile" $EDITHISTORY
+
+    return 0
+  fi
+  touch $CDHISTORY ; touch $EDITHISTORY
+  return 1
+}
+
+clearup() {
+    rm $EDITHISTORY ; touch $EDITHISTORY ; rm $CDHISTORY ; touch $CDHISTORY
 }
 
