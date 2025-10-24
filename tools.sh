@@ -1,8 +1,7 @@
 #!/bin/sh
 #required:
-#   fzf(fzy breaks hyprland for some reason), tac, sed, grep
+#   fzf(fzy breaks hyprland for some reason), tac, sed, grep, truncate
 
-#TODO: make j not show full paths but just one dir up, also add J for loops
 #TODO: add peepee
 #TODO: add coloring to sed
 #TODO: make and quick access to compiler errors
@@ -13,13 +12,12 @@
 CDHISTORY="$HOME/.cdhistory"
 
 cd() {
-  [ -f "$CDHISTORY" ] || touch "$CDHISTORY"
   command cd "$@" && echo "$PWD" >> $CDHISTORY
 }
 
 c() {
   dir=$(tac "$CDHISTORY" | sed "\|$PWD\$|d" | awk '!seen[$0]++' | fzf) || return 1
-  [ -n "$dir" ] && cd "$dir"
+  [ -d "$dir" ] && cd "$dir"
 }
 
 #--------------------------------------------------------------------------------
@@ -31,8 +29,6 @@ c() {
 EDITHISTORY="$HOME/.edithistory"
 
 edit() {
-  [ -f "$EDITHISTORY" ] || touch "$EDITHISTORY"
-
   if [ $# -gt 0 ]; then
     case "$1" in
       -*) ;;
@@ -46,14 +42,28 @@ edit() {
   command "$EDITOR" "$@"
 }
 
+J() {
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | grep "$PWD" | sed "s|^$PWD/||" | fzf) || return 1
+  [ -f "$file" ] && edit "$file"
+}
+
 j() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | grep "$PWD" | fzf) || return 1
-  [ -n "$file" ] && edit "$file"
+  while true; do
+    file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | grep "$PWD" | sed "s|^$PWD/||" | fzf) || return 1
+    [ -f "$file" ] && edit "$file"
+  done
+}
+
+JJ() {
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
+  [ -f "$file" ] && edit "$file"
 }
 
 jj() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
-  [ -n "$file" ] && edit "$file"
+  while true; do
+    file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
+    [ -f "$file" ] && edit "$file"
+  done
 }
 
 cleanup() {
@@ -63,23 +73,22 @@ cleanup() {
 
     tmpfile="/tmp/paths.$$"
     while IFS= read -r path; do
-      [ -e "$path" ] && echo "$path" >> "$tmpfile"
+      [ -d "$path" ] && echo "$path" >> "$tmpfile"
     done < $CDHISTORY
-    mv "$tmpfile" $CDHISTORY
+    mv -f "$tmpfile" $CDHISTORY
 
-    tmpfile="/tmp/paths.$$"
     while IFS= read -r path; do
-      [ -e "$path" ] && echo "$path" >> "$tmpfile"
+      [ -f "$path" ] && echo "$path" >> "$tmpfile"
     done < $EDITHISTORY
-    mv "$tmpfile" $EDITHISTORY
+    mv -f "$tmpfile" $EDITHISTORY
 
     return 0
   fi
-  touch $CDHISTORY ; touch $EDITHISTORY
+  touch "$CDHISTORY" "$EDITHISTORY"
   return 1
 }
 
 clearup() {
-    rm $EDITHISTORY ; touch $EDITHISTORY ; rm $CDHISTORY ; touch $CDHISTORY
+  truncate -s 0 "$CDHISTORY" "$EDITHISTORY"
 }
 
