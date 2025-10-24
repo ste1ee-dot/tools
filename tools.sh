@@ -3,7 +3,7 @@
 #   fzf(fzy breaks hyprland for some reason), tac
 
 #--------------------------------------------------------------------------------
-#C accessory for cd - easily cd into recently accessed directories
+# c - easily cd into recently accessed directories
 #available arguments:
 #       -rd (--remove-duplicates) | removes duplicates from .cdhistory
 
@@ -25,7 +25,7 @@ c() {
 }
 
 #--------------------------------------------------------------------------------
-#J(jump) is used for accessing recently edited files via text editor
+# j - quickly access recently edited files via text editor
 #by default it uses $EDITOR variable to find the default editor
 #
 #MAKE SURE TO ALIAS your editor command to 'edit'
