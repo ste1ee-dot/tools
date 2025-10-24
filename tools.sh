@@ -59,8 +59,8 @@ j() {
 }
 
 JJ() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || { echo "exit code: $?" ; return 1 ;}
-  #[ -f "$file" ] && edit "$file"
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
+  [ -f "$file" ] && edit "$file"
 }
 
 jj() {
@@ -68,6 +68,19 @@ jj() {
     file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
     [ -f "$file" ] && edit "$file"
   done
+}
+
+p() {
+  file=$(cat "$EDITHISTORY" | awk '!seen[$0]++' | tail -n 1) || return 1
+  echo "$file"
+}
+pp() {
+  file=$(cat "$EDITHISTORY" | awk '!seen[$0]++' | tail -n 2 | head -n 1) || return 1
+  echo "$file"
+}
+ppp() {
+  file=$(cat "$EDITHISTORY" | awk '!seen[$0]++' | tail -n 3 | head -n 1) || return 1
+  echo "$file"
 }
 
 cleanup() {
