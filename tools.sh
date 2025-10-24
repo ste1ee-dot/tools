@@ -2,6 +2,7 @@
 #required:
 #   fzf(fzy breaks hyprland for some reason), tac, sed, grep
 
+#TODO: move options to separate functions
 #TODO: make j not show full paths but just one dir up
 #TODO: add coloring to sed
 #TODO: clean up non existant files (moved or deleted)
