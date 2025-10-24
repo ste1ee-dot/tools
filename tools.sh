@@ -66,6 +66,20 @@ j() {
     return 0
   fi
 
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | grep "$PWD" | fzf) || return 1
+  [ -n "$file" ] && edit "$file"
+}
+
+jj() {
+  if [ "$1" = "--remove-duplicates" ] || [ "$1" = "-rd" ]; then
+    tac "$EDITHISTORY" | awk '!seen[$0]++' | tac > "$EDITHISTORY.tmp" && mv "$EDITHISTORY.tmp" "$EDITHISTORY"
+    return 0
+  fi
+  if [ "$1" = "--clear-history" ] || [ "$1" = "-ch" ]; then
+    rm $EDITHISTORY && touch $EDITHISTORY
+    return 0
+  fi
+
   file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
   [ -n "$file" ] && edit "$file"
 }
