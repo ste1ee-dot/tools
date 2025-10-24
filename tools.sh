@@ -71,15 +71,15 @@ jj() {
 }
 
 p() {
-  file=$(cat "$EDITHISTORY" | awk '!seen[$0]++' | tail -n 1) || return 1
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | head -n 1) || return 1
   echo "$file"
 }
 pp() {
-  file=$(cat "$EDITHISTORY" | awk '!seen[$0]++' | tail -n 2 | head -n 1) || return 1
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | head -n 2 | tail -n 1) || return 1
   echo "$file"
 }
 ppp() {
-  file=$(cat "$EDITHISTORY" | awk '!seen[$0]++' | tail -n 3 | head -n 1) || return 1
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | head -n 3 | tail -n 1) || return 1
   echo "$file"
 }
 
