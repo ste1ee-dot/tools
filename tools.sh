@@ -11,7 +11,7 @@
 CDHISTORY="$HOME/.cdhistory"
 [ -f "$CDHISTORY" ] || touch "$CDHISTORY" 2>/dev/null
 
-cd() { # Appends PWD to .cdhistory on every CD command
+cd() {
   command cd "$@" && echo "$PWD" >> $CDHISTORY
 }
 
@@ -45,8 +45,8 @@ EDITHISTORY="$HOME/.edithistory"
 edit() {
   if [ $# -gt 0 ]; then
     case "$1" in
-      -*) ;; # skip it's an actual argument
-      */) ;; # skip if it's a dir
+      -*) ;;
+      */) ;;
       *.) ;;
       /*) echo "$1" >> "$EDITHISTORY" ;;
       *) echo "$PWD/$1" >> "$EDITHISTORY" ;;
