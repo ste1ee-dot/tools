@@ -1,6 +1,10 @@
 #!/bin/sh
 #required:
 #   fzf(fzy breaks hyprland for some reason), tac, sed, grep, truncate
+#--------------------------------------------------------------------------------
+# This was made with significant inspiration and assistance from Stian Høiland.
+# Make sure to check out his github at:        https://github.com/stianhoiland
+# and give him a deserved follow on twitch at: https://www.twitch.tv/stianhoiland
 
 #TODO: add peepee
 #TODO: add coloring to sed
