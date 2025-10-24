@@ -12,7 +12,7 @@
 CDHISTORY="$HOME/.cdhistory"
 
 cd() {
-  command cd "$@" && echo "$PWD" >> $CDHISTORY
+  command cd "$@" && echo "$PWD" >> "$CDHISTORY"
 }
 
 c() {
@@ -55,8 +55,8 @@ j() {
 }
 
 JJ() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
-  [ -f "$file" ] && edit "$file"
+  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || { echo "exit code: $?" ; return 1 ;}
+  #[ -f "$file" ] && edit "$file"
 }
 
 jj() {
