@@ -6,7 +6,6 @@
 # Make sure to check out his github at:        https://github.com/stianhoiland
 # and give him a deserved follow on twitch at: https://www.twitch.tv/stianhoiland
 
-#TODO: add peepee
 #TODO: add coloring to sed
 #TODO: make and quick access to compiler errors
 
@@ -70,6 +69,13 @@ jj() {
   done
 }
 
+#--------------------------------------------------------------------------------
+# p - open last edited file in $EDITOR
+# pp - open second last edited file in $EDITOR
+# ppp - open third last edited file in $EDITOR
+#
+#MAKE SURE TO ALIAS your editor command to 'edit'
+
 p() {
   file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | sed -n "1{p;q}") || return 1
   [ -f "$file" ] && edit "$file"
@@ -82,6 +88,11 @@ ppp() {
   file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | sed -n "3{p;q}") || return 1
   [ -f "$file" ] && edit "$file"
 }
+
+#--------------------------------------------------------------------------------
+# cleanup - cleans up dupicates and non existing files/dirs in history files
+#
+#can be added to .profile so that the files get cleaned at each login
 
 cleanup() {
   if [ -f "$CDHISTORY" ] && [ -f "$EDITHISTORY" ]; then
@@ -104,6 +115,9 @@ cleanup() {
   touch "$CDHISTORY" "$EDITHISTORY"
   return 1
 }
+
+#--------------------------------------------------------------------------------
+# clearup - completely wipes clean the history files
 
 clearup() {
   truncate -s 0 "$CDHISTORY" "$EDITHISTORY"
