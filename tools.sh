@@ -70,9 +70,7 @@ jj() {
 }
 
 #--------------------------------------------------------------------------------
-# p - open last edited file in $EDITOR
-# pp - open second last edited file in $EDITOR
-# ppp - open third last edited file in $EDITOR
+# p - instantly open last, second or third last edited file in text editor
 #
 #MAKE SURE TO ALIAS your editor command to 'edit'
 
