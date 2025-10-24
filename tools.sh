@@ -3,7 +3,7 @@
 #   fzf(fzy breaks hyprland for some reason), tac
 
 #--------------------------------------------------------------------------------
-#C accessorie for cd - easily cd into recently accessed directories
+#C accessory for cd - easily cd into recently accessed directories
 #available arguments:
 #       -rd (--remove-duplicates) | removes duplicates from .cdhistory
 
@@ -31,7 +31,7 @@ c() {
 #MAKE SURE TO ALIAS your editor command to 'edit'
 #
 #available arguments:
-#       -rd (--remove-duplicates) | removes duplicates from .cdhistory
+#       -rd (--remove-duplicates) | removes duplicates from .edithistory
 
 EDITHISTORY="$HOME/.edithistory"
 [ -f "$EDITHISTORY" ] || touch "$EDITHISTORY" 2>/dev/null
