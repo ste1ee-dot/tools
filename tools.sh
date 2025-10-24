@@ -7,7 +7,7 @@
 #TODO: add peepee
 #TODO: add coloring to sed
 #TODO: clean up non existant files (moved or deleted)
-#TODO: make and quick acess to compiler errors
+#TODO: make and quick access to compiler errors
 
 #--------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
