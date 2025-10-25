@@ -24,7 +24,6 @@ c() {
     sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
     fzf --ansi | \
     sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
-
   [ -d "$dir" ] && cd "$dir"
 }
 
