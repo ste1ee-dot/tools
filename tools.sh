@@ -106,7 +106,7 @@ ppp() {
 myCC=gcc
 myCFLAGS="-std=c89 -Wall -Wextra -pedantic"
 
-ce() {
+ccheck() {
   if [ $# -eq 0 ]; then
     echo "You need to provide a file"
     return 1
@@ -124,13 +124,25 @@ ce() {
       return 1 ;;
   esac
 
-  selection=$("$myCC" $myCFLAGS "$@" 2>&1 | grep -E '^[^:]+:[0-9]+:[0-9]+: error:' | fzf --ansi)
+  selection=$("$myCC" $myCFLAGS "$@" 2>&1 | grep -E "^[^:]+:[0-9]+:[0-9]+: $CCHECK_TYPE:" | fzf --ansi)
   if [ -n "$selection" ]; then
     IFS=':' read -r file line column _ <<< "$selection"
     edit "$file" +":call cursor($line, $column)"
   else
-    echo "Compiled without errors or none were selected"
+    echo "Compiled without $CCHECK_TYPE""s or none were selected"
   fi
+}
+ce() {
+  CCHECK_TYPE='error'
+  ccheck "$@"
+}
+cw() {
+  CCHECK_TYPE='warning'
+  ccheck "$@"
+}
+cn() {
+  CCHECK_TYPE='note'
+  ccheck "$@"
 }
 
 #-------------------------------------------------------------------------------
