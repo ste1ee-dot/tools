@@ -60,20 +60,10 @@ j() {
       sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
     [ -z "$file" ] && break;
     edit "$file"
+    [ -n "$1" ] && break;
   done
 }
-
-J() {
-  file=$(tac "$EDITHISTORY" | \
-    awk '!seen[$0]++' | \
-    grep "$PWD" | \
-    sed "s|^$PWD/||" | \
-    sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-    fzf --ansi | \
-    sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
-  [ -z "$file" ] && break;
-  edit "$file"
-}
+alias J="j single"
 
 jj() {
   while true; do
@@ -84,18 +74,10 @@ jj() {
       sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
   [ -z "$file" ] && break;
   edit "$file"
+  [ -n "$1" ] && break;
   done
 }
-
-JJ() {
-  file=$(tac "$EDITHISTORY" | \
-    awk '!seen[$0]++' | \
-    sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-    fzf --ansi | \
-    sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
-  [ -z "$file" ] && break;
-  edit "$file"
-}
+alias JJ="jj single"
 
 #-------------------------------------------------------------------------------
 # p - instantly open last, second or third last edited file in text editor
