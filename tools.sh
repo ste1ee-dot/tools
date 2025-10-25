@@ -6,7 +6,6 @@
 #Make sure to check out his github at:        https://github.com/stianhoiland
 #and give him a deserved follow on twitch at: https://www.twitch.tv/stianhoiland
 
-#TODO: make and quick access to compiler errors
 
 #-------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
@@ -82,7 +81,7 @@ alias JJ="jj single"
 #-------------------------------------------------------------------------------
 # p - instantly open last, second or third last edited file in text editor
 #
-#MAKE SURE TO ALIAS your editor command to 'edit'
+#MAKE SURE YOU ALIASED your editor command to 'edit'
 
 p() {
   file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | sed -n "1{p;q}") || return 1
@@ -95,6 +94,43 @@ pp() {
 ppp() {
   file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | sed -n "3{p;q}") || return 1
   [ -f "$file" ] && edit "$file"
+}
+
+#-------------------------------------------------------------------------------
+# ce, cw, cn - ce filename let's you pick and jump to the errors from gcc in editor
+#               cw filename does the same for warnings
+#                cn filename does the same for notes
+#
+#MAKE SURE YOU ALIASED your editor command to 'edit'
+
+myCC=gcc
+myCFLAGS="-std=c89 -Wall -Wextra -pedantic"
+
+ce() {
+  if [ $# -eq 0 ]; then
+    echo "You need to provide a file"
+    return 1
+  fi
+
+  if [ ! -f "$1" ]; then
+    echo "File does not exist"
+    return 1
+  fi
+
+  case "$1" in
+    *.c|*.s|*.S|*.cpp|*.cxx|*.cc) ;;
+    *)
+      echo "File is not a valid source file"
+      return 1 ;;
+  esac
+
+  selection=$("$myCC" $myCFLAGS "$@" 2>&1 | grep -E '^[^:]+:[0-9]+:[0-9]+: error:' | fzf --ansi)
+  if [ -n "$selection" ]; then
+    IFS=':' read -r file line column _ <<< "$selection"
+    edit "$file" +":call cursor($line, $column)"
+  else
+    echo "Compiled without errors or none were selected"
+  fi
 }
 
 #-------------------------------------------------------------------------------
