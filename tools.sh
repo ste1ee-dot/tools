@@ -1,15 +1,14 @@
 #!/bin/sh
 #required:
 #   fzf(fzy breaks hyprland for some reason), tac, sed, grep, truncate
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # This was made with significant inspiration and assistance from Stian Høiland.
-# Make sure to check out his github at:        https://github.com/stianhoiland
-# and give him a deserved follow on twitch at: https://www.twitch.tv/stianhoiland
+#Make sure to check out his github at:        https://github.com/stianhoiland
+#and give him a deserved follow on twitch at: https://www.twitch.tv/stianhoiland
 
-#TODO: add coloring to sed
 #TODO: make and quick access to compiler errors
 
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
 
 CDHISTORY="$HOME/.cdhistory"
@@ -19,11 +18,17 @@ cd() {
 }
 
 c() {
-  dir=$(tac "$CDHISTORY" | sed "\|$PWD\$|d" | awk '!seen[$0]++' | fzf) || return 1
+  dir=$(tac "$CDHISTORY" | \
+    sed "\|$PWD\$|d" | \
+    awk '!seen[$0]++' | \
+    sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
+    fzf --ansi | \
+    sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
+
   [ -d "$dir" ] && cd "$dir"
 }
 
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # j - quickly access recently edited files via text editor
 #by default it uses $EDITOR variable to find the default editor
 #
@@ -45,31 +50,55 @@ edit() {
   command "$EDITOR" "$@"
 }
 
-J() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | grep "$PWD" | sed "s|^$PWD/||" | fzf) || return 1
-  [ -f "$file" ] && edit "$file"
-}
-
 j() {
   while true; do
-    file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | grep "$PWD" | sed "s|^$PWD/||" | fzf) || return 1
-    [ -f "$file" ] && edit "$file"
+    file=$(tac "$EDITHISTORY" | \
+      awk '!seen[$0]++' | \
+      grep "$PWD" | \
+      sed "s|^$PWD/||" | \
+      sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
+      fzf --ansi | \
+      sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
+    [ -z "$file" ] && break;
+    edit "$file"
   done
 }
 
-JJ() {
-  file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
-  [ -f "$file" ] && edit "$file"
+J() {
+  file=$(tac "$EDITHISTORY" | \
+    awk '!seen[$0]++' | \
+    grep "$PWD" | \
+    sed "s|^$PWD/||" | \
+    sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
+    fzf --ansi | \
+    sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
+  [ -z "$file" ] && break;
+  edit "$file"
 }
 
 jj() {
   while true; do
-    file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | fzf) || return 1
-    [ -f "$file" ] && edit "$file"
+    file=$(tac "$EDITHISTORY" | \
+      awk '!seen[$0]++' | \
+      sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
+      fzf --ansi | \
+      sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
+  [ -z "$file" ] && break;
+  edit "$file"
   done
 }
 
-#--------------------------------------------------------------------------------
+JJ() {
+  file=$(tac "$EDITHISTORY" | \
+    awk '!seen[$0]++' | \
+    sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
+    fzf --ansi | \
+    sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
+  [ -z "$file" ] && break;
+  edit "$file"
+}
+
+#-------------------------------------------------------------------------------
 # p - instantly open last, second or third last edited file in text editor
 #
 #MAKE SURE TO ALIAS your editor command to 'edit'
@@ -87,15 +116,18 @@ ppp() {
   [ -f "$file" ] && edit "$file"
 }
 
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # cleanup - cleans up dupicates and non existing files/dirs in history files
 #
 #can be added to .profile so that the files get cleaned at each login
 
 cleanup() {
   if [ -f "$CDHISTORY" ] && [ -f "$EDITHISTORY" ]; then
-    tac "$CDHISTORY" | awk '!seen[$0]++' | tac > "$CDHISTORY.tmp" && mv "$CDHISTORY.tmp" "$CDHISTORY"
-    tac "$EDITHISTORY" | awk '!seen[$0]++' | tac > "$EDITHISTORY.tmp" && mv "$EDITHISTORY.tmp" "$EDITHISTORY"
+    tac "$CDHISTORY" | awk '!seen[$0]++' | \
+      tac > "$CDHISTORY.tmp" && mv "$CDHISTORY.tmp" "$CDHISTORY"
+
+    tac "$EDITHISTORY" | awk '!seen[$0]++' | \
+      tac > "$EDITHISTORY.tmp" && mv "$EDITHISTORY.tmp" "$EDITHISTORY"
 
     tmpfile="/tmp/paths.$$"
     while IFS= read -r path; do
@@ -114,7 +146,7 @@ cleanup() {
   return 1
 }
 
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # clearup - completely wipes clean the history files
 
 clearup() {
