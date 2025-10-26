@@ -10,7 +10,7 @@
 #Make sure you aliased your editor command to 'edit'!
 #These tools also you $EDITOR variable so make sure that is set correctly!
 
-#TODO:move, copy and rename for browse
+#TODO: rename for browse
 
 #-------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
@@ -154,9 +154,10 @@ cn() {
 #-------------------------------------------------------------------------------
 # b - mini browser for your shell
 #   bc - creates a new file in current directory
-#   bd - deletes files from $SELECTION_FILE
-#   bs - selects files
-#   bp - pastes files from $SELECTION_FILE into current direcotry
+#   bd - deletes from $SELECTION_FILE
+#   bs - selects and puts into $SELECTION_FILE
+#   bp - pastes from $SELECTION_FILE into current direcotry
+#   bm - moves from $SELECTION_FILE into current direcotry
 #
 
 SELECTION_FILE="$HOME/.bselection"
@@ -165,8 +166,8 @@ b() {
   truncate -s 0 "$SELECTION_FILE"
   while true; do
     selected=$( ( command ls -1ap | \
-      grep -v '^./$'; echo "CREATE" ; echo "SELECT" ; echo "DELETE" ; echo "PASTE" ) | \
-      sed -r 's/^(CREATE|SELECT|DELETE|PASTE|\.\.\/)$/\x1b[33m&\x1b[0m/' | \
+      grep -v '^./$'; printf "CREATE\nSELECT\nPASTE\nMOVE\nDELETE\n" ) | \
+      sed -r 's/^(CREATE|SELECT|DELETE|PASTE|MOVE|\.\.\/)$/\x1b[33m&\x1b[0m/' | \
       fzf | \
       sed 's/\x1b\[[0-9;]*[mK]//g' )
     [ -z "$selected" ] && break
@@ -175,6 +176,7 @@ b() {
       SELECT) bs ;;
       DELETE) bd ;;
       PASTE) bp ;;
+      MOVE) bm ;;
       */) cd "$selected" ;;
       *) edit "$selected" ;;
     esac
@@ -314,6 +316,46 @@ bp() {
       else
         echo "Copying $base"
         cp -r "$src" .
+      fi
+    done
+  fi
+}
+
+bm() {
+  local to_move=()
+
+  [ -f "$SELECTION_FILE" ] && mapfile -t to_move < "$SELECTION_FILE"
+
+  if [ ${#to_move[@]} -eq 0 ]; then
+    echo "Selection empty, select something first:"
+    bs
+    [ -f "$SELECTION_FILE" ] && mapfile -t to_move < "$SELECTION_FILE"
+    [ ${#to_move[@]} -eq 0 ] && { echo "Selection empty, abort"; return 1; }
+  else
+    for src in "${to_move[@]}"; do
+      if [ ! -e "$src" ]; then
+        echo "Source not found: $src" >&2
+        continue
+      fi
+
+      base=$(basename "$src")
+
+      if [ -e "$base" ]; then
+        printf "Replace existing '%s'? [y/N]: " "$base"
+        read -r answer
+        case "$answer" in
+          [Yy]*)
+            echo "Replacing $base"
+            [ -e "./$base" ] && rm -rf "$base"
+            mv -f "$src" .
+            > "$SELECTION_FILE" ;;
+          *)
+            echo "Skipping $base" ;;
+        esac
+      else
+        echo "Moving $base"
+        mv -n "$src" .
+        > "$SELECTION_FILE"
       fi
     done
   fi
