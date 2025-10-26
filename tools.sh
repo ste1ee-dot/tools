@@ -5,6 +5,10 @@
 # This was made with significant inspiration and assistance from Stian Høiland.
 #Make sure to check out his github at:        https://github.com/stianhoiland
 #and give him a deserved follow on twitch at: https://www.twitch.tv/stianhoiland
+#
+# !!! IMPORTANT: !!!
+#Make sure you aliased your editor command to 'edit'!
+#These tools also you $EDITOR variable so make sure that is set correctly!
 
 #TODO:move, copy and rename for browse
 
@@ -31,7 +35,6 @@ c() {
 # j - quickly access recently edited files via text editor
 #by default it uses $EDITOR variable to find the default editor
 #
-#MAKE SURE TO ALIAS your editor command to 'edit'
 
 EDITHISTORY="$HOME/.edithistory"
 
@@ -82,7 +85,6 @@ alias JJ="jj single"
 #-------------------------------------------------------------------------------
 # p - instantly open last, second or third last edited file in text editor
 #
-#MAKE SURE YOU ALIASED your editor command to 'edit'
 
 p() {
   file=$(tac "$EDITHISTORY" | awk '!seen[$0]++' | sed -n "1{p;q}") || return 1
@@ -102,7 +104,6 @@ ppp() {
 #               cw filename does the same for warnings
 #                cn filename does the same for notes
 #
-#MAKE SURE YOU ALIASED your editor command to 'edit'
 
 myCC=gcc
 myCFLAGS="-std=c89 -Wall -Wextra -pedantic"
@@ -149,7 +150,6 @@ cn() {
 #-------------------------------------------------------------------------------
 # b - mini browser for your shell
 #
-#MAKE SURE YOU ALIASED your editor command to 'edit'
 
 SELECTION_FILE="$HOME/.bselection"
 
