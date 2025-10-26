@@ -32,7 +32,10 @@ c() {
 }
 
 #-------------------------------------------------------------------------------
-# j - quickly access recently edited files via text editor
+# j - quickly access recently edited files from current directory
+# jj - same but global
+# J, JJ - same things without a loop
+#
 #by default it uses $EDITOR variable to find the default editor
 #
 
@@ -150,6 +153,10 @@ cn() {
 
 #-------------------------------------------------------------------------------
 # b - mini browser for your shell
+#   bc - creates a new file in current directory
+#   bd - deletes files from $SELECTION_FILE
+#   bs - selects files
+#   bp - pastes files from $SELECTION_FILE into current direcotry
 #
 
 SELECTION_FILE="$HOME/.bselection"
@@ -158,8 +165,8 @@ b() {
   truncate -s 0 "$SELECTION_FILE"
   while true; do
     selected=$( ( command ls -1ap | \
-      grep -v '^./$'; echo "CREATE" ; echo "SELECT" ; echo "DELETE" ) | \
-      sed -r 's/^(CREATE|SELECT|DELETE|\.\.\/)$/\x1b[33m&\x1b[0m/' | \
+      grep -v '^./$'; echo "CREATE" ; echo "SELECT" ; echo "DELETE" ; echo "PASTE" ) | \
+      sed -r 's/^(CREATE|SELECT|DELETE|PASTE|\.\.\/)$/\x1b[33m&\x1b[0m/' | \
       fzf | \
       sed 's/\x1b\[[0-9;]*[mK]//g' )
     [ -z "$selected" ] && break
@@ -167,6 +174,7 @@ b() {
       CREATE) bc ;;
       SELECT) bs ;;
       DELETE) bd ;;
+      PASTE) bp ;;
       */) cd "$selected" ;;
       *) edit "$selected" ;;
     esac
@@ -266,12 +274,49 @@ bd() {
         fi
       done
       > "$SELECTION_FILE"
-      echo "Deleted ${#to_delete[@]} items."
+      echo "Deleted ${#to_delete[@]} items"
       ;;
     *)
       echo "Deletion aborted"
       ;;
   esac
+}
+
+bp() {
+  local to_paste=()
+
+  [ -f "$SELECTION_FILE" ] && mapfile -t to_paste < "$SELECTION_FILE"
+
+  if [ ${#to_paste[@]} -eq 0 ]; then
+    echo "Selection empty, select something first:"
+    bs
+    [ -f "$SELECTION_FILE" ] && mapfile -t to_paste < "$SELECTION_FILE"
+    [ ${#to_paste[@]} -eq 0 ] && { echo "Selection empty, abort"; return 1; }
+  else
+    for src in "${to_paste[@]}"; do
+      if [ ! -e "$src" ]; then
+        echo "Source not found: $src" >&2
+        continue
+      fi
+
+      base=$(basename "$src")
+
+      if [ -e "$base" ]; then
+        printf "Replace existing '%s'? [y/N]: " "$base"
+        read -r answer
+        case "$answer" in
+          [Yy]*)
+            echo "Replacing $base"
+            cp -r --remove-destination "$src" . ;;
+          *)
+            echo "Skipping $base" ;;
+        esac
+      else
+        echo "Copying $base"
+        cp -r "$src" .
+      fi
+    done
+  fi
 }
 
 #-------------------------------------------------------------------------------
