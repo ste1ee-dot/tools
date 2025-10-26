@@ -6,6 +6,7 @@
 #Make sure to check out his github at:        https://github.com/stianhoiland
 #and give him a deserved follow on twitch at: https://www.twitch.tv/stianhoiland
 
+#TODO:move, copy and rename for browse
 
 #-------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
@@ -21,7 +22,7 @@ c() {
     sed "\|$PWD\$|d" | \
     awk '!seen[$0]++' | \
     sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-    fzf --ansi | \
+    fzf | \
     sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
   [ -d "$dir" ] && cd "$dir"
 }
@@ -55,7 +56,7 @@ j() {
       grep "$PWD" | \
       sed "s|^$PWD/||" | \
       sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-      fzf --ansi | \
+      fzf | \
       sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
     [ -z "$file" ] && break;
     edit "$file"
@@ -69,7 +70,7 @@ jj() {
     file=$(tac "$EDITHISTORY" | \
       awk '!seen[$0]++' | \
       sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-      fzf --ansi | \
+      fzf | \
       sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
   [ -z "$file" ] && break;
   edit "$file"
@@ -124,7 +125,7 @@ ccheck() {
       return 1 ;;
   esac
 
-  selection=$("$myCC" $myCFLAGS "$@" 2>&1 | grep -E "^[^:]+:[0-9]+:[0-9]+: $CCHECK_TYPE:" | fzf --ansi)
+  selection=$("$myCC" $myCFLAGS "$@" 2>&1 | grep -E "^[^:]+:[0-9]+:[0-9]+: $CCHECK_TYPE:" | fzf)
   if [ -n "$selection" ]; then
     IFS=':' read -r file line column _ <<< "$selection"
     edit "$file" +":call cursor($line, $column)"
@@ -143,6 +144,133 @@ cw() {
 cn() {
   CCHECK_TYPE='note'
   ccheck "$@"
+}
+
+#-------------------------------------------------------------------------------
+# b - mini browser for your shell
+#
+#MAKE SURE YOU ALIASED your editor command to 'edit'
+
+SELECTION_FILE="$HOME/.bselection"
+
+b() {
+  truncate -s 0 "$SELECTION_FILE"
+  while true; do
+    selected=$( ( command ls -1ap | \
+      grep -v '^./$'; echo "CREATE" ; echo "SELECT" ; echo "DELETE" ) | \
+      sed -r 's/^(CREATE|SELECT|DELETE|\.\.\/)$/\x1b[33m&\x1b[0m/' | \
+      fzf | \
+      sed 's/\x1b\[[0-9;]*[mK]//g' )
+    [ -z "$selected" ] && break
+    case "$selected" in
+      CREATE) bc ;;
+      SELECT) bs ;;
+      DELETE) bd ;;
+      */) cd "$selected" ;;
+      *) edit "$selected" ;;
+    esac
+  done
+}
+
+bc() {
+  echo "Name of file or directory/ to create:"
+  read new
+  [ -z "$new" ] && return
+  case "$new" in
+    */) mkdir "$new" ;;
+    *) touch "$new" ;;
+  esac
+}
+
+bs() {
+  local prev_selections=()
+  [ -f "$SELECTION_FILE" ] && mapfile -t prev_selections < "$SELECTION_FILE"
+
+  while true; do
+    selected=$(
+      ( command ls -1Ap; echo "DONE" ) | while IFS= read -r line; do
+        if [ "$line" = "DONE" ]; then
+          printf '\033[33m%s\033[0m\n' "$line"
+        else
+          match=false
+          for stored_path in "${prev_selections[@]}"; do
+            stored_base="$(basename "$stored_path")"
+            [ -d "$stored_path" ] && [[ "$stored_base" != */ ]] && stored_base="$stored_base/"
+            if [ "$line" = "$stored_base" ]; then
+              match=true
+              break
+            fi
+          done
+          if $match; then
+            printf '\033[36m%s\033[0m\n' "$line"
+          else
+            printf '%s\n' "$line"
+          fi
+        fi
+      done | fzf
+    )
+
+    [ -z "$selected" ] && break
+
+    if [ "$selected" = "DONE" ]; then
+      break
+    else
+      selected_norm="${selected%/}"
+
+      found=false
+      for i in "${!prev_selections[@]}"; do
+        stored_norm="$(basename "${prev_selections[i]}")"
+        stored_norm="${stored_norm%/}"
+        if [ "$selected_norm" = "$stored_norm" ]; then
+          unset 'prev_selections[i]'
+          found=true
+          break
+        fi
+      done
+
+      if ! $found; then
+        [[ -d "$PWD/$selected" ]] && [[ "$selected" != */ ]] && selected="$selected/"
+        prev_selections+=("$PWD/$selected")
+      fi
+
+      printf "%s\n" "${prev_selections[@]}" > "$SELECTION_FILE"
+    fi
+  done
+}
+
+bd() {
+  local to_delete=()
+  [ -f "$SELECTION_FILE" ] && mapfile -t to_delete < "$SELECTION_FILE"
+
+  if [ ${#to_delete[@]} -eq 0 ]; then
+    echo "Selection empty, select something first:"
+    bs
+    [ -f "$SELECTION_FILE" ] && mapfile -t to_delete < "$SELECTION_FILE"
+    [ ${#to_delete[@]} -eq 0 ] && { echo "Selection empty, abort"; return 1; }
+  fi
+
+  echo "Selected to delete:"
+  for f in "${to_delete[@]}"; do
+    echo "  $f"
+  done
+
+  read -rp "Are you sure you want to delete these? [y/N]: " confirm
+  case "$confirm" in
+    [yY]|[yY][eE][sS])
+      for f in "${to_delete[@]}"; do
+        if [ -d "$f" ]; then
+          rm -rf "$f"
+        else
+          rm -f "$f"
+        fi
+      done
+      > "$SELECTION_FILE"
+      echo "Deleted ${#to_delete[@]} items."
+      ;;
+    *)
+      echo "Deletion aborted"
+      ;;
+  esac
 }
 
 #-------------------------------------------------------------------------------
