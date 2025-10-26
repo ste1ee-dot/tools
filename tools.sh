@@ -104,6 +104,7 @@ ppp() {
 #               cw filename does the same for warnings
 #                cn filename does the same for notes
 #
+#ADJUST FOR YOU COMPILER / EDITOR IF NEEDED
 
 myCC=gcc
 myCFLAGS="-std=c89 -Wall -Wextra -pedantic"
