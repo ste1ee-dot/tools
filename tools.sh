@@ -1,6 +1,6 @@
 #!/bin/sh
 #required:
-#   fzy, tac, sed, grep, truncate
+#   fzy/fzf, tac, sed, grep, truncate, vidir
 #-------------------------------------------------------------------------------
 # This was made with significant inspiration and assistance from Stian Høiland.
 #Make sure to check out his github page at:   https://github.com/stianhoiland
@@ -10,7 +10,6 @@
 #Make sure you aliased your editor command to 'edit'!
 #These tools use $EDITOR variable so make sure that is set!
 
-#TODO: rename for browse
 #TODO: get rid of subshells in while loop
 #TODO: someday make b posix complient
 #TODO: add o and oo
@@ -29,7 +28,7 @@ c() {
     sed "\|$PWD\$|d" | \
     awk '!seen[$0]++' | \
     sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-    fzy | \
+    fzf | \
     sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
   [ -d "$dir" ] && cd "$dir"
 }
@@ -65,7 +64,7 @@ j() {
       grep "$PWD" | \
       sed "s|^$PWD/||" | \
       sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-      fzy | \
+      fzf | \
       sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
     [ -z "$file" ] && break;
     edit "$file"
@@ -79,7 +78,7 @@ jj() {
     file=$(tac "$EDITHISTORY" | \
       awk '!seen[$0]++' | \
       sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-      fzy | \
+      fzf | \
       sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
   [ -z "$file" ] && break;
   edit "$file"
@@ -138,7 +137,7 @@ ccheck() {
   esac
 
   selection=$("$myCC" $myCFLAGS "$@" 2>&1 | \
-      grep -E "^[^:]+:[0-9]+:[0-9]+: $CCHECK_TYPE:" | fzy)
+      grep -E "^[^:]+:[0-9]+:[0-9]+: $CCHECK_TYPE:" | fzf)
   if [ -n "$selection" ]; then
     IFS=':' read -r file line column _ <<< "$selection"
     edit "$file" +":call cursor($line, $column)"
@@ -175,9 +174,9 @@ b() {
   bsc
   while true; do
     selected=$( ( command ls -1ap | \
-      grep -v '^./$'; printf "CREATE\nSELECT\nPASTE\nMOVE\nDELETE\n" ) | \
-      sed -r 's/^(CREATE|SELECT|DELETE|PASTE|MOVE|\.\.\/)$/\x1b[33m&\x1b[0m/' \
-      | fzy | sed 's/\x1b\[[0-9;]*[mK]//g' )
+      grep -v '^./$'; printf "SELECT\nPASTE\nMOVE\nRENAME\nCREATE\nDELETE\n" ) | \
+      sed -r 's/^(CREATE|SELECT|DELETE|PASTE|MOVE|RENAME|\.\.\/)$/\x1b[33m&\x1b[0m/' \
+      | fzf | sed 's/\x1b\[[0-9;]*[mK]//g' )
     [ -z "$selected" ] && break
     case "$selected" in
       CREATE) bc ;;
@@ -185,6 +184,7 @@ b() {
       DELETE) bd ;;
       PASTE) bp ;;
       MOVE) bm ;;
+      RENAME) br ;;
       */) cd "$selected" ;;
       *) edit "$selected" ;;
     esac
@@ -227,7 +227,7 @@ bs() {
             printf '%s\n' "$line"
           fi
         fi
-      done | fzy
+      done | fzf
     )
 
     [ -z "$selected" ] && break
@@ -373,6 +373,20 @@ bm() {
       fi
     done
   fi
+}
+
+br() {
+  local to_rename=()
+  [ -f "$SELECTION_FILE" ] && mapfile -t to_rename < "$SELECTION_FILE"
+
+  if [ ${#to_rename[@]} -eq 0 ]; then
+    echo "Selection empty, select something first:"
+    bs
+    [ -f "$SELECTION_FILE" ] && mapfile -t to_rename < "$SELECTION_FILE"
+    [ ${#to_rename[@]} -eq 0 ] && { echo "Selection empty, abort"; return 1; }
+  fi
+
+  cat "$SELECTION_FILE" | vidir -
 }
 
 #-------------------------------------------------------------------------------
