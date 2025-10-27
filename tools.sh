@@ -1,16 +1,19 @@
 #!/bin/sh
 #required:
-#   fzf(fzy breaks hyprland for some reason), tac, sed, grep, truncate
+#   fzy, tac, sed, grep, truncate
 #-------------------------------------------------------------------------------
 # This was made with significant inspiration and assistance from Stian Høiland.
-#Make sure to check out his github at:        https://github.com/stianhoiland
+#Make sure to check out his github page at:   https://github.com/stianhoiland
 #and give him a deserved follow on twitch at: https://www.twitch.tv/stianhoiland
 #
 # !!! IMPORTANT: !!!
 #Make sure you aliased your editor command to 'edit'!
-#These tools also you $EDITOR variable so make sure that is set correctly!
+#These tools use $EDITOR variable so make sure that is set!
 
 #TODO: rename for browse
+#TODO: get rid of subshells in while loop
+#TODO: someday make b posix complient
+#TODO: add o and oo
 
 #-------------------------------------------------------------------------------
 # c - easily cd into recently accessed directories
@@ -26,7 +29,7 @@ c() {
     sed "\|$PWD\$|d" | \
     awk '!seen[$0]++' | \
     sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-    fzf | \
+    fzy | \
     sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
   [ -d "$dir" ] && cd "$dir"
 }
@@ -62,7 +65,7 @@ j() {
       grep "$PWD" | \
       sed "s|^$PWD/||" | \
       sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-      fzf | \
+      fzy | \
       sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
     [ -z "$file" ] && break;
     edit "$file"
@@ -76,7 +79,7 @@ jj() {
     file=$(tac "$EDITHISTORY" | \
       awk '!seen[$0]++' | \
       sed -r $'s,^(|.*/)(.*)$,\\1\\\x1b[33m\\2\\\x1b[0m,' | \
-      fzf | \
+      fzy | \
       sed $'s/\x1b[[0-9;]*[mK]//g') || return 1
   [ -z "$file" ] && break;
   edit "$file"
@@ -103,14 +106,18 @@ ppp() {
 }
 
 #-------------------------------------------------------------------------------
-# ce, cw, cn - ce filename let's you pick and jump to the errors from gcc in editor
-#               cw filename does the same for warnings
-#                cn filename does the same for notes
+# ce, cw, cn - ce file let's you pick and jump to the errors from gcc in editor
+#               cw file does the same for warnings
+#                cn file does the same for notes
 #
 #ADJUST FOR YOU COMPILER / EDITOR IF NEEDED
 
 myCC=gcc
 myCFLAGS="-std=c89 -Wall -Wextra -pedantic"
+
+mycc() {
+	"$myCC" $myCFLAGS "$@"
+}
 
 ccheck() {
   if [ $# -eq 0 ]; then
@@ -130,7 +137,8 @@ ccheck() {
       return 1 ;;
   esac
 
-  selection=$("$myCC" $myCFLAGS "$@" 2>&1 | grep -E "^[^:]+:[0-9]+:[0-9]+: $CCHECK_TYPE:" | fzf)
+  selection=$("$myCC" $myCFLAGS "$@" 2>&1 | \
+      grep -E "^[^:]+:[0-9]+:[0-9]+: $CCHECK_TYPE:" | fzy)
   if [ -n "$selection" ]; then
     IFS=':' read -r file line column _ <<< "$selection"
     edit "$file" +":call cursor($line, $column)"
@@ -153,23 +161,23 @@ cn() {
 
 #-------------------------------------------------------------------------------
 # b - mini browser for your shell
-#   bc - creates a new file in current directory
-#   bd - deletes from $SELECTION_FILE
-#   bs - selects and puts into $SELECTION_FILE
-#   bp - pastes from $SELECTION_FILE into current direcotry
-#   bm - moves from $SELECTION_FILE into current direcotry
+#   bc  - creates a new file in current directory
+#   bd  - deletes from $SELECTION_FILE
+#   bs  - selects and puts into $SELECTION_FILE
+#   bsc - clears $SELECTION_FILE completely
+#   bp  - pastes from $SELECTION_FILE into current direcotry
+#   bm  - moves from $SELECTION_FILE into current direcotry
 #
 
 SELECTION_FILE="$HOME/.bselection"
 
 b() {
-  truncate -s 0 "$SELECTION_FILE"
+  bsc
   while true; do
     selected=$( ( command ls -1ap | \
       grep -v '^./$'; printf "CREATE\nSELECT\nPASTE\nMOVE\nDELETE\n" ) | \
-      sed -r 's/^(CREATE|SELECT|DELETE|PASTE|MOVE|\.\.\/)$/\x1b[33m&\x1b[0m/' | \
-      fzf | \
-      sed 's/\x1b\[[0-9;]*[mK]//g' )
+      sed -r 's/^(CREATE|SELECT|DELETE|PASTE|MOVE|\.\.\/)$/\x1b[33m&\x1b[0m/' \
+      | fzy | sed 's/\x1b\[[0-9;]*[mK]//g' )
     [ -z "$selected" ] && break
     case "$selected" in
       CREATE) bc ;;
@@ -206,7 +214,8 @@ bs() {
           match=false
           for stored_path in "${prev_selections[@]}"; do
             stored_base="$(basename "$stored_path")"
-            [ -d "$stored_path" ] && [[ "$stored_base" != */ ]] && stored_base="$stored_base/"
+            [ -d "$stored_path" ] && \
+                [[ "$stored_base" != */ ]] && stored_base="$stored_base/"
             if [ "$line" = "$stored_base" ]; then
               match=true
               break
@@ -218,7 +227,7 @@ bs() {
             printf '%s\n' "$line"
           fi
         fi
-      done | fzf
+      done | fzy
     )
 
     [ -z "$selected" ] && break
@@ -240,13 +249,18 @@ bs() {
       done
 
       if ! $found; then
-        [[ -d "$PWD/$selected" ]] && [[ "$selected" != */ ]] && selected="$selected/"
+        [[ -d "$PWD/$selected" ]] && \
+            [[ "$selected" != */ ]] && selected="$selected/"
         prev_selections+=("$PWD/$selected")
       fi
 
       printf "%s\n" "${prev_selections[@]}" > "$SELECTION_FILE"
     fi
   done
+}
+
+bsc() {
+  truncate -s 0 "$SELECTION_FILE"
 }
 
 bd() {
